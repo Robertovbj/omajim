@@ -243,6 +243,11 @@ public:
     // The message field has text (or was just cleared); the contact sees
     // "typing" while it does.
     Q_INVOKABLE void setComposing(bool composing);
+    // What was left written in a conversation's message field, as the
+    // composer's runs, kept per conversation and across restarts, as
+    // Gajim's drafts. Runs with no text take it away.
+    Q_INVOKABLE QVariantList draft(const QString &jid) const { return m_drafts.value(jid); }
+    Q_INVOKABLE void setDraft(const QString &jid, const QVariantList &runs);
 
     // How a file travels: "server" uploads it (XEP-0363) and sends the link,
     // which works for rooms and offline contacts; "direct" streams it to the
@@ -508,6 +513,12 @@ private:
     // Contacts in the roster, cached or from the server: whose links are
     // fetched for previews.
     QSet<QString> m_knownContacts;
+    // Drafts as typed, and the ones not yet written to the history, which
+    // waits for a pause in the typing.
+    QHash<QString, QVariantList> m_drafts;
+    QSet<QString> m_unsavedDrafts;
+    QTimer *m_draftTimer = nullptr;
+    void saveDrafts();
     QString m_pickMethod = QStringLiteral("server");
     QString m_proxy;
     QString m_roomService;

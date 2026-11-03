@@ -37,6 +37,9 @@ janela: seus contatos à esquerda e a conversa à direita.
   ao copiar mensagens, se escolhe nas preferências; o padrão segue o idioma
   e a região do computador. Ao rolar, o dia da mensagem do topo fica
   flutuando até chegar ao separador dele, como no ZapFast.
+- O que fica escrito numa conversa espera nela como rascunho, com a
+  formatação, mesmo depois de fechar o Omajim, como no Gajim e no ZapFast.
+  A lista de conversas mostra "Rascunho:" e o texto.
 - Ctrl+F busca no histórico inteiro da conversa, sem ligar para acentos;
   Enter e Shift+Enter passam pelos resultados, trazendo as mensagens
   antigas quando preciso.

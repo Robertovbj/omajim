@@ -141,6 +141,11 @@ public:
     QHash<QString, QString> aliases() const;
     void setAlias(const QString &jid, const QString &alias);
 
+    // What was left written in each conversation's message field, as the
+    // composer's runs in JSON; an empty one takes it away.
+    QHash<QString, QString> drafts() const;
+    void setDraft(const QString &peer, const QString &runs);
+
     QString rosterVersion() const;
     QList<RosterRow> roster() const;
     void replaceRoster(const QString &version, const QList<RosterRow> &rows);

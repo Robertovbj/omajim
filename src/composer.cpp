@@ -252,3 +252,53 @@ QVariantList Composer::runsOf(const QTextDocument *document) {
     }
     return runs;
 }
+
+void Composer::setRuns(QQuickTextDocument *quick, const QVariantList &runs) {
+    writeRuns(documentOf(quick), runs);
+}
+
+void Composer::writeRuns(QTextDocument *document, const QVariantList &runs) {
+    if (!document)
+        return;
+    document->clear();
+    QTextCursor cursor(document);
+    cursor.beginEditBlock();
+    auto markBlock = [&cursor](bool inBlock) {
+        QTextBlockFormat format = cursor.blockFormat();
+        if (inBlock)
+            format.setProperty(BlockProperty, true);
+        else
+            format.clearProperty(BlockProperty);
+        cursor.setBlockFormat(format);
+    };
+    for (const QVariant &value : runs) {
+        const QVariantMap run = value.toMap();
+        const bool inBlock = run.value("block").toBool();
+        QTextCharFormat format;
+        static const QStringList kinds{"bold", "italic", "underline", "strike", "code"};
+        for (const QString &kind : kinds)
+            if (run.value(kind).toBool())
+                set(format, kind, true);
+        if (inBlock)
+            format.setFontFamilies(Monospace);
+        const QString color = run.value("color").toString();
+        if (!color.isEmpty())
+            format.setForeground(QColor(color));
+        const QString background = run.value("background").toString();
+        if (!background.isEmpty())
+            format.setBackground(QColor(background));
+        // A new line ends the block it's in, which takes the run's block.
+        const QStringList lines = run.value("text").toString().split('\n');
+        for (qsizetype i = 0; i < lines.size(); ++i) {
+            if (i > 0) {
+                markBlock(inBlock);
+                cursor.insertBlock(QTextBlockFormat(), QTextCharFormat());
+            }
+            if (!lines.at(i).isEmpty()) {
+                markBlock(inBlock);
+                cursor.insertText(lines.at(i), format);
+            }
+        }
+    }
+    cursor.endEditBlock();
+}

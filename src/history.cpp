@@ -107,6 +107,7 @@ bool History::open(const QString &path) {
                     query.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)") &&
                     query.exec("CREATE TABLE IF NOT EXISTS chats (peer TEXT PRIMARY KEY, open INTEGER NOT NULL)") &&
                     query.exec("CREATE TABLE IF NOT EXISTS aliases (jid TEXT PRIMARY KEY, alias TEXT NOT NULL)") &&
+                    query.exec("CREATE TABLE IF NOT EXISTS drafts (peer TEXT PRIMARY KEY, runs TEXT NOT NULL)") &&
                     query.exec("CREATE TABLE IF NOT EXISTS reactions (peer TEXT NOT NULL, message_id TEXT NOT NULL,"
                                " sender TEXT NOT NULL, emojis TEXT NOT NULL, PRIMARY KEY (peer, message_id, sender))");
     if (!ok) {
@@ -532,6 +533,32 @@ void History::setAlias(const QString &jid, const QString &alias) {
         query.prepare("INSERT OR REPLACE INTO aliases (jid, alias) VALUES (?, ?)");
         query.addBindValue(jid);
         query.addBindValue(alias.trimmed());
+    }
+    query.exec();
+}
+
+QHash<QString, QString> History::drafts() const {
+    QHash<QString, QString> drafts;
+    if (!isOpen())
+        return drafts;
+    QSqlQuery query(QSqlDatabase::database(m_connection));
+    if (query.exec("SELECT peer, runs FROM drafts"))
+        while (query.next())
+            drafts.insert(query.value(0).toString(), query.value(1).toString());
+    return drafts;
+}
+
+void History::setDraft(const QString &peer, const QString &runs) {
+    if (!isOpen())
+        return;
+    QSqlQuery query(QSqlDatabase::database(m_connection));
+    if (runs.isEmpty()) {
+        query.prepare("DELETE FROM drafts WHERE peer = ?");
+        query.addBindValue(peer);
+    } else {
+        query.prepare("INSERT OR REPLACE INTO drafts (peer, runs) VALUES (?, ?)");
+        query.addBindValue(peer);
+        query.addBindValue(runs);
     }
     query.exec();
 }

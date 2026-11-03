@@ -395,6 +395,9 @@ Rectangle {
                 required property string alias
                 required property string rosterName
                 required property string group
+                required property string draft
+                // Left written in a conversation other than the open one.
+                readonly property bool showsDraft: !pane.searching && draft !== "" && !selected
 
                 readonly property bool selected: jid === backend.currentChat
                 readonly property bool focusedRow: list.activeFocus && ListView.isCurrentItem
@@ -493,7 +496,11 @@ Rectangle {
                         // status or address while searching.
                         Label {
                             Layout.fillWidth: true
-                            text: !pane.searching && row.lastMessage !== ""
+                            textFormat: row.showsDraft ? Text.StyledText : Text.PlainText
+                            text: row.showsDraft
+                                  ? "<font color=\"" + pane.ui.accent + "\">" + qsTr("Draft:") + "</font> "
+                                    + row.draft.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                                  : !pane.searching && row.lastMessage !== ""
                                   ? (row.lastOutgoing ? qsTr("You: %1").arg(row.lastMessage) : row.lastMessage)
                                   : [pane.searching && row.group !== "" && row.group !== "#rooms" ? row.group : "",
                                      row.statusText !== "" ? row.statusText : row.jid].filter(part => part !== "").join(" · ")

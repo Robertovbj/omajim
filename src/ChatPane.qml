@@ -111,11 +111,36 @@ Rectangle {
     }
 
     function send() {
+        // A correction gives the field back to the draft it set aside.
+        const correcting = backend.editing
         if (backend.sendComposed(composerFormat.runs(composer.textDocument))) {
-            setComposerText("")
+            if (correcting)
+                restoreDraft()
+            else
+                setComposerText("")
             messages.toEnd()
         }
     }
+
+    // Each conversation keeps what was left written in it, as Gajim and
+    // ZapFast do: the field follows the conversation, not the window.
+    // draftChat is whose text the field holds; a correction being written
+    // isn't a draft, and sets the draft aside until it's done.
+    property string draftChat: ""
+    property bool loadingDraft: false
+    function restoreDraft() {
+        loadingDraft = true
+        pendingFormat = null
+        draftChat = backend.currentChat
+        composerFormat.setRuns(composer.textDocument, backend.draft(draftChat))
+        composer.cursorPosition = composer.length
+        loadingDraft = false
+    }
+    function keepDraft() {
+        if (!loadingDraft && !backend.editing && draftChat !== "")
+            backend.setDraft(draftChat, composerFormat.runs(composer.textDocument))
+    }
+    Component.onCompleted: restoreDraft()
 
     // The message field is rich text: what goes in from outside goes in as
     // text, never as markup.
@@ -208,6 +233,7 @@ Rectangle {
     Connections {
         target: backend
         function onCurrentChatChanged() {
+            pane.restoreDraft()
             searchBar.visible = false
             pane.searchHits = []
             pane.searchIndex = -1
@@ -847,7 +873,7 @@ Rectangle {
                     description: qsTr("Don't edit (Esc)")
                     onClicked: {
                         backend.cancelEditing()
-                        pane.setComposerText("")
+                        pane.restoreDraft()
                     }
                 }
             }
@@ -1070,6 +1096,9 @@ Rectangle {
                             pasteHandler: () => pane.offerPaste() || pane.pastePlain()
                         }
                         onTextChanged: {
+                            if (pane.loadingDraft)
+                                return
+                            pane.keepDraft()
                             backend.setComposing(length > 0)
                             // What was typed after picking a format with
                             // nothing selected takes it.
@@ -1118,7 +1147,7 @@ Rectangle {
                         Keys.onEscapePressed: event => {
                             if (backend.editing) {
                                 backend.cancelEditing()
-                                pane.setComposerText("")
+                                pane.restoreDraft()
                             } else if (backend.replyingTo !== "") {
                                 backend.cancelReply()
                             } else {

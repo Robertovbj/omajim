@@ -1563,6 +1563,62 @@ private slots:
         QCOMPARE(again.contacts()->nameOf("jcp@example.org"), QString("Jean Carlos Pereira"));
     }
 
+    void draftsStayWithTheirConversation() {
+        QTemporaryDir dir;
+        FakeSecretStore secrets;
+        const QVariantList runs{QVariantMap{{"text", "ola "}, {"bold", false}, {"block", false}},
+                                QVariantMap{{"text", "mundo\n  bonito"}, {"bold", true}, {"block", false}}};
+        {
+            Backend backend(dir.filePath("config"), dir.filePath("data"), nullptr, &secrets);
+            backend.setStatus("offline");
+            backend.signIn("alice@example.org", "secret", "127.0.0.1:1", false);
+            backend.contacts()->upsert("jcp@example.org", "Jean");
+            backend.setDraft("jcp@example.org", runs);
+            backend.setDraft("bob@example.org", {QVariantMap{{"text", "tchau"}}});
+            // Only spaces left is no draft.
+            backend.setDraft("bob@example.org", {QVariantMap{{"text", "  "}}});
+            QCOMPARE(backend.draft("jcp@example.org"), runs);
+            QVERIFY(backend.draft("bob@example.org").isEmpty());
+        }
+        // Back on the next start, in one line in the list.
+        Backend again(dir.filePath("config"), dir.filePath("data"), nullptr, &secrets);
+        again.setStatus("offline");
+        again.signIn("alice@example.org", "secret", "127.0.0.1:1", false);
+        QCOMPARE(again.draft("jcp@example.org").size(), 2);
+        QCOMPARE(again.draft("jcp@example.org").at(1).toMap().value("text").toString(), QString("mundo\n  bonito"));
+        QVERIFY(again.draft("bob@example.org").isEmpty());
+        auto *contacts = again.contacts();
+        contacts->upsert("jcp@example.org", "Jean");
+        contacts->setFilter("jean");
+        QCOMPARE(contacts->rowCount(), 1);
+        QCOMPARE(contacts->data(contacts->index(0), ContactModel::DraftRole).toString(), QString("ola mundo bonito"));
+    }
+
+    void composerWritesItsRunsBack() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nTextEdit { textFormat: TextEdit.RichText }", QUrl());
+        std::unique_ptr<QObject> edit(component.create());
+        QVERIFY2(edit, qPrintable(component.errorString()));
+        auto *document = edit->property("textDocument").value<QQuickTextDocument *>();
+        Composer composer;
+        composer.setPlainText(document, "ola mundo\ncodigo aqui\nfim");
+        composer.toggle(document, 4, 9, "bold");
+        composer.toggle(document, 0, 3, "code");
+        composer.setColor(document, 4, 9, "#e01b24", false);
+        composer.setColor(document, 22, 25, "#fff3a0", true);
+        composer.toggleBlock(document, 10, 15);
+        const QVariantList runs = composer.runs(document);
+
+        composer.setPlainText(document, "");
+        composer.setRuns(document, runs);
+        QCOMPARE(composer.plainText(document), QString("ola mundo\ncodigo aqui\nfim"));
+        QCOMPARE(composer.runs(document), runs);
+        QVERIFY(composer.formatOf(document, 12, 14).value("block").toBool());
+        QVERIFY(!composer.formatOf(document, 22, 25).value("block").toBool());
+        QVERIFY(composer.formatOf(document, 0, 3).value("code").toBool());
+    }
+
     void searchIsFuzzyAndAccentBlind() {
         QVERIFY(ContactModel::fuzzyScore("jcp", "Jean Carlos Pereira") > 0);
         QVERIFY(ContactModel::fuzzyScore("joao", "João Silva") > 0);

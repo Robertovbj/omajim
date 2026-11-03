@@ -27,6 +27,7 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const {
     case LastActivityRole: return contact.lastActivity.toLocalTime();
     case LastMessageRole: return contact.lastMessage;
     case LastOutgoingRole: return contact.lastOutgoing;
+    case DraftRole: return contact.draft;
     // The section a contact is listed under: "#rooms" for group chats, the
     // first group, or empty for none (the window names those two).
     case GroupRole: return contact.isRoom ? QStringLiteral("#rooms") : contact.groups.value(0);
@@ -38,7 +39,7 @@ QHash<int, QByteArray> ContactModel::roleNames() const {
     return {{JidRole, "jid"}, {NameRole, "name"}, {PresenceRole, "presence"},
             {StatusTextRole, "statusText"}, {UnreadRole, "unread"}, {AvatarRole, "avatar"}, {IsRoomRole, "isRoom"}, {AliasRole, "alias"}, {RosterNameRole, "rosterName"},
             {LastActivityRole, "lastActivity"}, {LastMessageRole, "lastMessage"}, {LastOutgoingRole, "lastOutgoing"},
-            {GroupRole, "group"}};
+            {GroupRole, "group"}, {DraftRole, "draft"}};
 }
 
 QString ContactModel::displayName(const QString &jid, const QString &name) {
@@ -153,6 +154,16 @@ void ContactModel::setAlias(const QString &jid, const QString &alias) {
     contact.alias = alias.trimmed();
     rebuild();
     emit contactChanged(jid);
+}
+
+void ContactModel::setDraft(const QString &jid, const QString &draft) {
+    Contact &contact = m_contacts[jid];
+    contact.jid = jid;
+    if (contact.draft == draft)
+        return;
+    contact.draft = draft;
+    // Only its row repaints: it changes as one types.
+    refreshRow(jid);
 }
 
 QString ContactModel::nameOf(const QString &jid) const {

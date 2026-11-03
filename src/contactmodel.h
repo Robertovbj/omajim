@@ -26,6 +26,9 @@ struct Contact {
     QDateTime lastActivity;
     QString lastMessage;
     bool lastOutgoing = false;
+    // Text left in its message field, in one line, shown in place of the
+    // newest line while the conversation isn't the open one.
+    QString draft;
 };
 
 // The sidebar. Without a search it lists the open conversations, newest
@@ -42,7 +45,7 @@ class ContactModel : public QAbstractListModel {
 
 public:
     enum Role { JidRole = Qt::UserRole + 1, NameRole, PresenceRole, StatusTextRole, UnreadRole, AvatarRole, IsRoomRole, AliasRole, RosterNameRole,
-                LastActivityRole, LastMessageRole, LastOutgoingRole, GroupRole };
+                LastActivityRole, LastMessageRole, LastOutgoingRole, GroupRole, DraftRole };
 
     explicit ContactModel(QObject *parent = nullptr);
 
@@ -72,6 +75,7 @@ public:
     // Every group in the roster, sorted, to offer when moving a contact.
     Q_INVOKABLE QStringList allGroups() const;
     void setAlias(const QString &jid, const QString &alias);
+    void setDraft(const QString &jid, const QString &draft);
     // How a contact is called everywhere: the alias, the roster name, or
     // the address's user part.
     QString nameOf(const QString &jid) const;

@@ -20,6 +20,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QSslConfiguration>
 #include <QStandardPaths>
 #include <QUrl>
@@ -290,6 +292,10 @@ Backend::Backend(const QString &configDirectory, const QString &dataDirectory, F
         if (changed)
             emit typingChanged();
     });
+    m_draftTimer = new QTimer(this);
+    m_draftTimer->setSingleShot(true);
+    m_draftTimer->setInterval(1000);
+    connect(m_draftTimer, &QTimer::timeout, this, &Backend::saveDrafts);
     m_pauseTimer = new QTimer(this);
     m_pauseTimer->setSingleShot(true);
     m_pauseTimer->setInterval(5000);
@@ -475,6 +481,7 @@ Backend::Backend(const QString &configDirectory, const QString &dataDirectory, F
 }
 
 Backend::~Backend() {
+    saveDrafts();
     // Leave cleanly so the server sends "offline" to contacts right away.
     if (m_client->isConnected())
         m_client->disconnectFromServer();
@@ -999,6 +1006,8 @@ void Backend::connectTo(const QString &server, int port) {
 }
 
 void Backend::openHistory() {
+    // The account before keeps what was left written.
+    saveDrafts();
     const QString path = QDir(m_dataDirectory).filePath("accounts/" + m_jid + "/history.sqlite");
     if (!m_history.open(path)) {
         setError(tr("The message history couldn't be opened (%1): %2").arg(path, m_history.errorString()));
@@ -1027,6 +1036,21 @@ void Backend::openHistory() {
     const auto aliases = m_history.aliases();
     for (auto it = aliases.cbegin(); it != aliases.cend(); ++it)
         m_contacts.setAlias(it.key(), it.value());
+
+    for (auto it = m_drafts.cbegin(); it != m_drafts.cend(); ++it)
+        m_contacts.setDraft(it.key(), QString());
+    m_drafts.clear();
+    const auto drafts = m_history.drafts();
+    for (auto it = drafts.cbegin(); it != drafts.cend(); ++it) {
+        const QVariantList runs = QJsonDocument::fromJson(it.value().toUtf8()).array().toVariantList();
+        QString plain;
+        for (const QVariant &run : runs)
+            plain += run.toMap().value("text").toString();
+        if (plain.trimmed().isEmpty())
+            continue;
+        m_drafts.insert(it.key(), runs);
+        m_contacts.setDraft(it.key(), plain.simplified());
+    }
 
     const QStringList open = m_history.openChats();
     for (const QString &jid : open)
@@ -1611,6 +1635,37 @@ void Backend::closeChat() {
     m_messages.reset({});
     emit currentChatChanged();
     emit typingChanged();
+}
+
+void Backend::setDraft(const QString &jid, const QVariantList &runs) {
+    if (jid.isEmpty())
+        return;
+    QString plain;
+    for (const QVariant &run : runs)
+        plain += run.toMap().value("text").toString();
+    if (plain.trimmed().isEmpty()) {
+        if (!m_drafts.remove(jid))
+            return;
+    } else {
+        if (m_drafts.value(jid) == runs)
+            return;
+        m_drafts.insert(jid, runs);
+    }
+    m_contacts.setDraft(jid, plain.trimmed().isEmpty() ? QString() : plain.simplified());
+    m_unsavedDrafts.insert(jid);
+    m_draftTimer->start();
+}
+
+void Backend::saveDrafts() {
+    if (m_draftTimer)
+        m_draftTimer->stop();
+    for (const QString &jid : std::as_const(m_unsavedDrafts)) {
+        const auto it = m_drafts.constFind(jid);
+        m_history.setDraft(jid, it == m_drafts.cend()
+                                    ? QString()
+                                    : QString::fromUtf8(QJsonDocument(QJsonArray::fromVariantList(*it)).toJson(QJsonDocument::Compact)));
+    }
+    m_unsavedDrafts.clear();
 }
 
 bool Backend::sendComposed(const QVariantList &runs) {

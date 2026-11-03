@@ -39,6 +39,9 @@ public:
     // The text in runs of one formatting each: {text, bold, italic,
     // underline, strike, code, block, color, background}.
     Q_INVOKABLE QVariantList runs(QQuickTextDocument *document) const;
+    // The field written again from runs, as a draft brings it back.
+    Q_INVOKABLE void setRuns(QQuickTextDocument *document, const QVariantList &runs);
 
     static QVariantList runsOf(const QTextDocument *document);
+    static void writeRuns(QTextDocument *document, const QVariantList &runs);
 };
