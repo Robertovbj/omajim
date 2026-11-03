@@ -1076,9 +1076,14 @@ Rectangle {
                 // placeholder sits where the first line will; it grows with
                 // more lines and scrolls past the frame's height.
                 ScrollView {
+                    id: composerScroll
+                    objectName: "composerScroll"
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignVCenter
                     Layout.preferredHeight: Math.min(composer.implicitHeight, 160)
+                    // At an edge it simply stops, as the conversation does,
+                    // without going past and coming back.
+                    Component.onCompleted: contentItem.boundsBehavior = Flickable.StopAtBounds
                     TextArea {
                         id: composer
                         // Rich, for Pidgin's colors; text goes in only as text.
