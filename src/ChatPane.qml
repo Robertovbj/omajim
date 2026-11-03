@@ -416,6 +416,9 @@ Rectangle {
             // started and where the pointer is now, as {row, pos}.
             property var textStart: null
             property var textEnd: null
+            // After a double click the drag goes by whole words: the word
+            // clicked, as {row, start, end}, stays in; null otherwise.
+            property var wordAnchor: null
             property point lastPointer
             property real scrollSpeed: 0
             signal textSelectionChanged()
@@ -429,6 +432,7 @@ Rectangle {
                 return textStart !== null && (textStart.row !== textEnd.row || textStart.pos !== textEnd.pos)
             }
             function startTextSelection(row, pos) {
+                wordAnchor = null
                 textStart = {row: row, pos: pos}
                 textEnd = {row: row, pos: pos}
                 textSelectionChanged()
@@ -438,7 +442,12 @@ Rectangle {
                 textEnd = {row: endRow, pos: endPos}
                 textSelectionChanged()
             }
+            function startWordSelection(row, start, end) {
+                wordAnchor = {row: row, start: start, end: end}
+                setTextSelection(row, start, row, end)
+            }
             function clearTextSelection() {
+                wordAnchor = null
                 if (textStart === null)
                     return
                 textStart = null
@@ -494,7 +503,19 @@ Rectangle {
                 if (textStart === null)
                     return
                 const local = mapToItem(item, point.x, y)
-                textEnd = {row: item.index, pos: item.textPosition(local.x, local.y)}
+                const pos = item.textPosition(local.x, local.y)
+                if (wordAnchor !== null) {
+                    // From the far side of the word clicked to the far side
+                    // of the word under the pointer.
+                    const word = item.wordAt(pos)
+                    const a = wordAnchor
+                    const after = item.index > a.row || (item.index === a.row && word.end > a.end)
+                    const before = item.index < a.row || (item.index === a.row && word.start < a.start)
+                    textStart = {row: a.row, pos: before ? a.end : a.start}
+                    textEnd = {row: item.index, pos: after ? word.end : before ? word.start : a.end}
+                } else {
+                    textEnd = {row: item.index, pos: pos}
+                }
                 textSelectionChanged()
             }
             function stopAutoScroll() {

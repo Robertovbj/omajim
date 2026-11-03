@@ -634,6 +634,27 @@ Item {
         return at < 0 ? null : {start: at, end: at + term.trim().length}
     }
 
+    // The word around a position, as {start, end}: letters, digits, and _
+    // in a run; anything else counts as a word of its own.
+    function wordAt(pos) {
+        if (line.kind !== "text")
+            return {start: pos, end: pos}
+        const text = bodyText.getText(0, bodyText.length)
+        const isWord = c => /[\p{L}\p{N}\p{M}_]/u.test(c)
+        // The character after the position, or the one before at the end.
+        const at = pos < text.length ? pos : pos - 1
+        if (at < 0)
+            return {start: 0, end: 0}
+        if (!isWord(text[at]))
+            return {start: at, end: at + 1}
+        let start = at, end = at + 1
+        while (start > 0 && isWord(text[start - 1]))
+            --start
+        while (end < text.length && isWord(text[end]))
+            ++end
+        return {start: start, end: end}
+    }
+
     // The plain text between two positions; end -1 runs to the end.
     function textBetween(start, end) {
         return line.kind === "text" ? bodyText.getText(start, end < 0 ? bodyText.length : end) : ""
@@ -769,7 +790,8 @@ Item {
                     backend.messages.toggleSelected(line.messageId)
                 return
             }
-            if (dragged || mouse.button !== Qt.LeftButton)
+            // A drag, or the double click's own release keeping its word.
+            if (dragged || mouse.button !== Qt.LeftButton || view.wordAnchor !== null)
                 return
             // A click, not a drag: open the link under it, or drop the selection.
             const point = mapToItem(bodyText, mouse.x, mouse.y)
@@ -784,7 +806,7 @@ Item {
             const atLine = mapToItem(line, mouse.x, mouse.y)
             bodyText.cursorPosition = line.textPosition(atLine.x, atLine.y)
             bodyText.selectWord()
-            line.ListView.view.setTextSelection(line.index, bodyText.selectionStart, line.index, bodyText.selectionEnd)
+            line.ListView.view.startWordSelection(line.index, bodyText.selectionStart, bodyText.selectionEnd)
         }
     }
 
