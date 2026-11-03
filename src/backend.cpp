@@ -3181,10 +3181,17 @@ QString Backend::selectedMessagesText() const {
     return lines.join('\n');
 }
 
+// A message's text as its rich text gives it back: the breaks come as
+// Unicode separators and the spaces it keeps as no-break ones, which most
+// apps don't take for breaks; plain ones, for the clipboard.
+static QString plainText(QString text) {
+    return text.replace(QChar::LineSeparator, '\n').replace(QChar::ParagraphSeparator, '\n').replace(QChar::Nbsp, ' ');
+}
+
 QString Backend::transcriptText(const QVariantList &parts) const {
     const auto &entries = m_messages.entries();
     if (parts.size() == 1)
-        return parts.first().toMap().value("text").toString();
+        return plainText(parts.first().toMap().value("text").toString());
     QStringList lines;
     for (const QVariant &value : parts) {
         const QVariantMap part = value.toMap();
@@ -3194,7 +3201,7 @@ QString Backend::transcriptText(const QVariantList &parts) const {
         const HistoryEntry &entry = entries.at(row);
         const QString who = authorOf(entry);
         // A partial line starts or ends wherever the drag did, spaces and all.
-        QString text = part.value("text").isNull() ? entry.body : part.value("text").toString().trimmed();
+        QString text = part.value("text").isNull() ? entry.body : plainText(part.value("text").toString()).trimmed();
         if (entry.kind == "file")
             text = QStringLiteral("[%1]").arg(tr("File: %1").arg(entry.body));
         if (!text.isEmpty())

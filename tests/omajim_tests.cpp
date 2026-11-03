@@ -1845,6 +1845,10 @@ private slots:
         // Within one message: just the text.
         QCOMPARE(backend.transcriptText({QVariantMap{{"row", 1}, {"text", "cond"}}}), QString("cond"));
 
+        // The rich text's line breaks and no-break spaces come out plain.
+        const QString broken = QString("a") + QChar::LineSeparator + "b" + QChar::ParagraphSeparator + "c" + QChar::Nbsp + "d";
+        QCOMPARE(backend.transcriptText({QVariantMap{{"row", 1}, {"text", broken}}}), QString("a\nb\nc d"));
+
         // Across three: the tail of the first, the middle whole (scrolled
         // away, so taken from the history), the head of the last.
         const QStringList lines = backend.transcriptText({QVariantMap{{"row", 0}, {"text", "line"}},
