@@ -41,6 +41,17 @@ Popup {
             ["Ctrl+. / Ctrl+;", qsTr("Insert an emoji")],
             ["Shift+Click / Shift+Drag", qsTr("Select whole messages")],
             ["Ctrl+C", qsTr("Copy the selected messages")] ] },
+        { title: qsTr("Vi keys"), keys: [
+            ["Esc", qsTr("Leave the text field")],
+            ["j / k", qsTr("Scroll, or move in the list")],
+            ["d / u", qsTr("Half a screen down or up")],
+            ["g g / G", qsTr("To the start or the end")],
+            ["J / K", qsTr("Next or previous conversation")],
+            ["h / l", qsTr("To the list or the conversation")],
+            ["i", qsTr("Write a message")],
+            ["/", qsTr("Search this conversation")],
+            ["o", qsTr("Search contacts")],
+            ["f", qsTr("Click by labels, like Vimium")] ] },
         { title: qsTr("Files"), keys: [
             ["Ctrl+O", qsTr("Send a file through the server")],
             ["Ctrl+Shift+O", qsTr("Send a file directly")] ] },

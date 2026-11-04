@@ -142,6 +142,28 @@ Num app de chat quase sempre se está digitando, então os atalhos usam um
 modificador. A exceção é o `?`, que mostra os atalhos como nos outros apps
 do Omarchy, mas só quando o foco não está num campo de texto.
 
+### Teclas do vi
+
+Esc sai do campo de mensagem (e da busca de contatos, já vazia); fora de
+um campo de texto, valem as teclas do vi:
+
+| Tecla | Ação |
+| --- | --- |
+| j / k | Rolar a conversa, ou andar pela lista quando ela tem o foco |
+| d / u | Meia tela para baixo ou para cima |
+| g g / G | Ir ao começo ou ao fim |
+| J / K | Conversa seguinte ou anterior |
+| h / l | Ir para a lista ou para a conversa (na lista, l abre a escolhida) |
+| i (ou a) | Voltar ao campo de mensagem |
+| / | Buscar na conversa |
+| o | Buscar contatos (Enter abre a conversa ou começa uma nova) |
+| f | Clicar pelo teclado, como no Vimium |
+| ? | Mostrar os atalhos |
+
+Com o `f`, cada coisa clicável na tela (botões, campos, contatos, arquivos,
+reações) ganha uma etiqueta de letras; digitar a etiqueta clica ali, ou põe
+o cursor no campo. Backspace apaga uma letra e Esc desiste.
+
 ## Firewall para o envio direto
 
 No envio direto, quem recebe se conecta no computador de quem envia, na

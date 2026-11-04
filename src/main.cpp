@@ -21,6 +21,7 @@
 #include "gajimimport.h"
 #include "idlemonitor.h"
 #include "instance.h"
+#include "linkhints.h"
 #include "notifier.h"
 #include "portalfilepicker.h"
 #include "secretstore.h"
@@ -93,6 +94,7 @@ int main(int argc, char *argv[]) {
     QObject::connect(&tray, &Tray::statusRequested, &accounts, &Accounts::setStatus);
     EmojiCatalog emojis(QDir(config).filePath("omajim.conf"));
     Composer composer;
+    LinkHints linkHints;
 
     // Text drawn by FreeType with the desktop's hinting, like every other app:
     // Qt Quick's default distance-field text smears small bold type at 1x.
@@ -112,6 +114,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("tray", &tray);
     engine.rootContext()->setContextProperty("emojis", &emojis);
     engine.rootContext()->setContextProperty("composerFormat", &composer);
+    engine.rootContext()->setContextProperty("linkHints", &linkHints);
     engine.load(QUrl("qrc:/Main.qml"));
     if (engine.rootObjects().isEmpty())
         return 1;

@@ -149,6 +149,36 @@ Rectangle {
         composerFormat.setPlainText(composer.textDocument, text)
         composer.cursorPosition = composer.length
     }
+    // Vi keys (Main.qml), with the message field left by Esc: the
+    // conversation itself takes the focus and scrolls by lines or pages;
+    // i comes back to the field.
+    function focusConversation() {
+        pane.forceActiveFocus()
+    }
+    function focusComposer() {
+        if (backend.currentChat !== "")
+            composer.forceActiveFocus()
+    }
+    function scrollBy(dy) {
+        messages.followEnd = false
+        messages.contentY = Math.max(messages.originY - messages.topMargin,
+                                     Math.min(messages.contentY + dy,
+                                              messages.originY + messages.contentHeight + messages.bottomMargin - messages.height))
+        messages.followEnd = messages.distanceToEnd < 24
+    }
+    function scrollLines(lines) {
+        scrollBy(lines * 60)
+    }
+    function scrollPages(pages) {
+        scrollBy(pages * messages.height)
+    }
+    function toStart() {
+        messages.followEnd = false
+        messages.positionViewAtBeginning()
+    }
+    function toEnd() {
+        messages.toEnd()
+    }
     function insertInComposer(text) {
         const start = composer.selectionStart, end = composer.selectionEnd
         if (end > start)
@@ -1177,7 +1207,8 @@ Rectangle {
                             } else if (backend.replyingTo !== "") {
                                 backend.cancelReply()
                             } else {
-                                event.accepted = false
+                                // Out of the field, for the vi keys.
+                                pane.focusConversation()
                             }
                         }
                         // Enter sends; Shift+Enter starts a new line.

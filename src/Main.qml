@@ -128,6 +128,58 @@ ApplicationWindow {
     Shortcut { sequences: ["Alt+Down", "Ctrl+Tab"]; context: Qt.ApplicationShortcut; enabled: backend.signedIn; onActivated: win.moveChat(1) }
     Shortcut { sequences: ["Alt+Up", "Ctrl+Shift+Tab"]; context: Qt.ApplicationShortcut; enabled: backend.signedIn; onActivated: win.moveChat(-1) }
 
+    // Vi keys, while no field has the cursor (Esc leaves them): j/k and the
+    // rest move in the sidebar's list when it has the focus, or else scroll
+    // the conversation; h and l go from one to the other.
+    readonly property bool viKeys: backend.signedIn && !typing
+    // Opening a conversation puts the cursor in its field; from the vi keys
+    // the focus stays where it was, to go on through conversations.
+    function moveChatKeepingFocus(step) {
+        const before = activeFocusItem
+        const inList = contactPane.listFocused
+        moveChat(step)
+        if (inList)
+            contactPane.focusList()
+        else if (before)
+            before.forceActiveFocus()
+        else
+            chatPane.focusConversation()
+    }
+    Shortcut { sequence: "J"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(1) : chatPane.scrollLines(1) }
+    Shortcut { sequence: "K"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(-1) : chatPane.scrollLines(-1) }
+    Shortcut { sequence: "D"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(8) : chatPane.scrollPages(0.5) }
+    Shortcut { sequence: "U"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(-8) : chatPane.scrollPages(-0.5) }
+    Shortcut { sequence: "G, G"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(-backend.contacts.count) : chatPane.toStart() }
+    Shortcut { sequence: "Shift+G"; enabled: win.viKeys; onActivated: contactPane.listFocused ? contactPane.moveInList(backend.contacts.count) : chatPane.toEnd() }
+    Shortcut { sequence: "Shift+J"; enabled: win.viKeys; onActivated: win.moveChatKeepingFocus(1) }
+    Shortcut { sequence: "Shift+K"; enabled: win.viKeys; onActivated: win.moveChatKeepingFocus(-1) }
+    Shortcut { sequence: "H"; enabled: win.viKeys; onActivated: contactPane.focusList() }
+    Shortcut {
+        sequence: "L"
+        enabled: win.viKeys
+        onActivated: {
+            if (contactPane.listFocused)
+                contactPane.openPicked()
+            // Opening a conversation puts the cursor in its field; l stays out.
+            chatPane.focusConversation()
+        }
+    }
+    Shortcut { sequences: ["I", "A"]; enabled: win.viKeys; onActivated: chatPane.focusComposer() }
+    Shortcut { sequence: "/"; enabled: win.viKeys && backend.currentChat !== ""; onActivated: chatPane.openSearch() }
+    Shortcut { sequence: "O"; enabled: win.viKeys; onActivated: contactPane.focusSearch() }
+    Shortcut { sequence: "F"; enabled: win.viKeys; onActivated: hintLayer.start() }
+
+    // On the window's root, over the header too, so its buttons get labels.
+    HintLayer {
+        id: hintLayer
+        parent: {
+            let item = win.contentItem
+            while (item.parent)
+                item = item.parent
+            return item
+        }
+    }
+
     header: ToolBar {
         id: topBar
         height: 60
@@ -510,6 +562,7 @@ ApplicationWindow {
                     color: win.ui.border
                 }
                 ChatPane {
+                    id: chatPane
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                 }

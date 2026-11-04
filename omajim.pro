@@ -21,6 +21,7 @@ HEADERS += \
     src/gajimimport.h \
     src/history.h \
     src/instance.h \
+    src/linkhints.h \
     src/messagemodel.h \
     src/notifier.h \
     src/portalfilepicker.h \
@@ -46,6 +47,7 @@ SOURCES += \
     src/gajimimport.cpp \
     src/history.cpp \
     src/instance.cpp \
+    src/linkhints.cpp \
     src/messagemodel.cpp \
     src/notifier.cpp \
     src/portalfilepicker.cpp \
