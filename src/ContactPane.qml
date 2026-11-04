@@ -33,6 +33,27 @@ Rectangle {
         search.selectAll()
     }
 
+    // Vi keys (Main.qml): h comes to the list, on the open conversation,
+    // j/k move in it and l opens the one picked.
+    readonly property bool listFocused: list.activeFocus
+    function focusList() {
+        setCollapsed(false)
+        const row = backend.contacts.rowOf(backend.currentChat)
+        if (row >= 0)
+            list.currentIndex = row
+        else if (list.currentIndex < 0)
+            list.currentIndex = 0
+        list.forceActiveFocus()
+    }
+    function moveInList(step) {
+        if (list.count > 0)
+            list.currentIndex = Math.max(0, Math.min(list.count - 1, list.currentIndex + step))
+    }
+    function openPicked() {
+        if (list.currentIndex >= 0)
+            backend.openChat(backend.contacts.jidAt(list.currentIndex))
+    }
+
     // Collapsed, it lists the conversations, whatever was searched or
     // browsed.
     function setCollapsed(collapsed) {
@@ -243,7 +264,13 @@ Rectangle {
                 list.forceActiveFocus()
                 list.currentIndex = 0
             }
-            Keys.onEscapePressed: text = ""
+            // Esc clears the search; empty, it leaves the field for the list.
+            Keys.onEscapePressed: {
+                if (text !== "")
+                    text = ""
+                else
+                    pane.focusList()
+            }
             // Enter opens the first match, or a conversation with a full
             // address nobody has yet, like Gajim's Start Chat.
             onAccepted: {
@@ -359,6 +386,9 @@ Rectangle {
             clip: true
             model: backend.contacts
             keyNavigationEnabled: true
+            // The list follows the current row at once; by default it glides
+            // there at 400 px/s, slow from one end to the other.
+            highlightMoveDuration: 0
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar {}
             SmoothWheel { view: list }

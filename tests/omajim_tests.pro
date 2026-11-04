@@ -18,6 +18,7 @@ HEADERS += \
     ../src/firewall.h \
     ../src/gajimimport.h \
     ../src/history.h \
+    ../src/linkhints.h \
     ../src/messagemodel.h \
     ../src/notifier.h \
     ../src/richtext.h \
@@ -41,6 +42,7 @@ SOURCES += \
     ../src/firewall.cpp \
     ../src/gajimimport.cpp \
     ../src/history.cpp \
+    ../src/linkhints.cpp \
     ../src/messagemodel.cpp \
     ../src/notifier.cpp \
     ../src/richtext.cpp \

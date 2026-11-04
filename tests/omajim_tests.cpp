@@ -29,7 +29,9 @@
 #include <QBuffer>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QQuickTextDocument>
+#include <QQuickWindow>
 #include <QDomDocument>
 #include <QClipboard>
 #include <QGuiApplication>
@@ -51,6 +53,7 @@
 #include "firewall.h"
 #include "gajimimport.h"
 #include "history.h"
+#include "linkhints.h"
 #include "richtext.h"
 #include "composer.h"
 #include "smileys.h"
@@ -2401,6 +2404,57 @@ private slots:
         QCOMPARE(emojis(catalog.recent()), (QStringList{QString::fromUtf8("😀"), tones.at(2)}));
         EmojiCatalog again(settings, QFINDTESTDATA("../src/emoji.tsv"));
         QCOMPARE(emojis(again.recent()), emojis(catalog.recent()));
+    }
+
+    void linkHintsLabelWhatCanBeClickedAndClickIt() {
+        LinkHints hints;
+        QCOMPARE(hints.labels(3), (QStringList{"s", "a", "d"}));
+        // More than the home row: all two letters, so none starts another.
+        const QStringList many = hints.labels(20);
+        QCOMPARE(many.size(), 20);
+        QCOMPARE(QSet<QString>(many.begin(), many.end()).size(), 20);
+        for (const QString &label : many)
+            QCOMPARE(label.size(), 2);
+
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(
+import QtQuick
+import QtQuick.Controls
+Window {
+    width: 300; height: 200; visible: true
+    property int clicks: 0
+    property int taps: 0
+    Button { objectName: "button"; width: 100; height: 40; onClicked: clicks++ }
+    Rectangle { objectName: "tap"; y: 50; width: 100; height: 40; TapHandler { onTapped: taps++ } }
+    TextField { objectName: "field"; y: 100; width: 100 }
+    // Neither hidden, nor out of the window, nor a mouse area that only drags.
+    Button { y: 150; width: 100; height: 40; visible: false }
+    Rectangle { y: 250; width: 100; height: 40; TapHandler {} }
+    MouseArea { x: 150; width: 100; height: 100 }
+    TextEdit { x: 150; y: 150; readOnly: true; text: "plain" }
+}
+)", QUrl());
+        std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        auto *window = qobject_cast<QQuickWindow *>(root.get());
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+
+        const QVariantList found = hints.targets(window);
+        QStringList names;
+        for (const QVariant &target : found)
+            names.append(target.toMap().value("item").value<QObject *>()->objectName());
+        QCOMPARE(names, (QStringList{"button", "tap", "field"}));
+        auto item = [&](int i) { return qobject_cast<QQuickItem *>(found.at(i).toMap().value("item").value<QObject *>()); };
+        QCOMPARE(found.at(2).toMap().value("y").toReal(), 100.0);
+
+        hints.click(item(0));
+        QCOMPARE(root->property("clicks").toInt(), 1);
+        hints.click(item(1));
+        QCOMPARE(root->property("taps").toInt(), 1);
+        hints.click(item(2));
+        QVERIFY(item(2)->hasFocus());
     }
 
 private:
